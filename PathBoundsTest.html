@@ -1,0 +1,65 @@
+<html>
+
+<head>
+    <title>GlyphBox2d-Test</title>
+    <script type="text/javascript" src="lib/path-utils.js"></script>
+    <script type="text/javascript" src="lib/p5.js"></script>
+    <script type="text/javascript">
+
+    var font, txt = "U", x = 200, y = 200, fontSize = 100;
+
+    function preload()
+    {
+        font = loadFont("fonts/SourceSansPro.otf");
+    }
+
+    function setup()
+    {
+        createCanvas(600, 400);
+        //noLoop();
+    }
+
+    function draw()
+    {
+        background(240);
+        noFill();
+        stroke(0);
+
+        var points = getPointsFromSimpleGlyph();
+        var bbox = pathBounds(points);
+
+        noFill();
+        if (pointInBox(bbox, mouseX, mouseY))
+            fill(200,0,0,64);
+
+        rect(bbox.x, bbox.y, bbox.w, bbox.h);
+
+        fill(255);
+        if (pointInPoly(points, mouseX, mouseY))
+            fill(200,0,0);
+
+        drawSimpleGlyph(points);
+    }
+
+    function getPointsFromSimpleGlyph() { // one letter, one path
+
+        var glyph = font._getGlyphs(txt)[0];
+        var gpath = glyph.getPath(x, y, fontSize);
+        var path = splitPaths(gpath.toPathData())[0];
+        return pointsFromPath(path, false);
+    }
+
+    function drawSimpleGlyph(points) {
+
+        beginShape();
+        for (var i = 0; i < points.length; i++)
+            vertex(points[i].x, points[i].y);
+        endShape(CLOSE);
+    }
+
+</script>
+</head>
+<div id="drawing"></div>
+
+
+</html>

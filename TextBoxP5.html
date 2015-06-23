@@ -6,7 +6,10 @@
     <script type="text/javascript" src="lib/p5.js"></script>
     <script type="text/javascript">
 
-    var font, txt = "p5%js", x = 200, y = 200, fontSize = 100;
+    var font, txt = "p%#js", x = 200, y = 200, fontSize = 100;
+
+    // NEXT
+    // Test pathBounds, pointInPoly, polyInPoly
 
     function preload()
     {
@@ -16,39 +19,28 @@
     function setup()
     {
         createCanvas(600, 400);
-        drawX();
+        noLoop();
     }
 
-    function drawX()
+    function draw()
     {
         background(240);
+        noFill();
         stroke(0);
-        fill(0,32);
-        var bbox = drawGlyphs(font, txt, x, y, fontSize);
-        rect(bbox.x, bbox.y+100, bbox.w, bbox.h);
-    }
-
-    function mousePressed()
-    {
-        pointInRect(mouseX, mouseY);
+        drawGlyphs(font, txt, x, y, fontSize);
+        //if (frameCount % 10==9) console.log(frameRate());
     }
 
     function drawGlyphs(font, text, x, y, fontSize) {
 
         var glyphs = font._getGlyphs(text), xoff = x;
 
-        var glyphBounds = [];
         // loop over each glyph and get its path(s)
         for (var i = 0; i < glyphs.length; i++) {
 
-            var bbox = drawGlyph(glyphs[i], xoff, y, fontSize);
-            console.log(glyphs[i].name.toUpperCase());
-            rect(bbox.x, bbox.y, bbox.w, bbox.h);
+            drawGlyph(glyphs[i], xoff, y, fontSize);
             xoff += glyphs[i].advanceWidth * font._scale(fontSize);
-            glyphBounds.push(bbox);
         }
-
-        return joinBounds(glyphBounds);
     }
 
     function drawGlyph(glyph, x, y, fontSize) {
@@ -60,43 +52,22 @@
 
         // draw each path as a poly or a hole
 
-        var bboxes = [];
-
         beginShape();
         for (var j = 0; j < paths.length; j++) {
 
             //console.log('  '+j+')'+paths[j]);
-            var pfp = pointsFromPath(paths[j], false);
-            drawPoly(pfp.points, paths.length, j);
-            bboxes.push(pfp.bounds);
+            var points = pointsFromPath(paths[j], false);
+            //stroke(j*50,255-j*50,100);
+
+
+            noFill();
+            if (pointInPoly(points, mouseX, mouseY))
+                fill(200,0,0,64);
+
+            drawPoly(points, paths.length, j);
+            noFill();
         }
         endShape(CLOSE);
-
-        return joinBounds(bboxes);
-    }
-
-    function joinBounds(bbs) {
-
-        var minX = minY = Number.MAX_VALUE;
-        var maxX = maxY = -Number.MAX_VALUE;
-
-        for (var i = 0; i < bbs.length; i ++) {
-
-            if (bbs[i].x < minX) minX = bbs[i].x;
-            if (bbs[i].x2 > maxX) maxX = bbs[i].x2;
-
-            if (bbs[i].y < minY) minY = bbs[i].y;
-            if (bbs[i].y2 > maxY) maxY = bbs[i].y2;
-        }
-
-        return {
-            x: minX,
-            y: minY,
-            w: maxX-minX,
-            h: maxY-minY,
-            x2: maxX,
-            y2: maxY
-        }
     }
 
     // NEXT: need to determine what is a hole and what isn't
@@ -107,15 +78,15 @@
         //console.log('drawPoly: ',k);
 
         var isContour = k % 2 == 1;
-
-        if (num>4) {
-            if (k == 2)
-            isContour = true;
-            if (k>2) {
-
-                return;
-            }
-        }
+        //
+        // if (num>4) {
+        //     if (k == 2)
+        //     isContour = true;
+        //     if (k>2) {
+        //
+        //         return;
+        //     }
+        // }
 
         //console.log(k,isContour);
         isContour && beginContour();
@@ -128,23 +99,11 @@
         //drawPoints(pts);
     }
 
-    function splitPaths(path) {
-
-        var paths = path.split('M');
-        paths.shift();
-
-        for (var i = 0; i < paths.length; i++)
-            paths[i] = 'M' + paths[i];
-
-        return paths;
-    }
-
     function drawPoints(pts)
     {
         for (var i = 0; i < pts.length; i++)
             ellipse(pts[i].x, pts[i].y, 2, 2);
     }
-
 
 </script>
 </head>
