@@ -6,10 +6,9 @@
     <script type="text/javascript" src="lib/p5.js"></script>
     <script type="text/javascript">
 
-    var font, txt = "p%#js", x = 200, y = 200, fontSize = 100;
+    var font, txt = "9", x = 100, y = 200, fontSize = 150;
 
-    // NEXT
-    // Test pathBounds, pointInPoly, polyInPoly
+    // NEXT: fix error with '9'
 
     function preload()
     {
@@ -19,92 +18,40 @@
     function setup()
     {
         createCanvas(600, 400);
-        noLoop();
     }
 
     function draw()
     {
-        background(240);
-        noFill();
+        background(245);
+        fill(200);
         stroke(0);
-        drawGlyphs(font, txt, x, y, fontSize);
-        //if (frameCount % 10==9) console.log(frameRate());
+        drawGlyphs(txt, x, y, fontSize);
     }
 
-    function drawGlyphs(font, text, x, y, fontSize) {
+    function drawGlyphs(txt, x, y, fontSize) {
 
-        var glyphs = font._getGlyphs(text), xoff = x;
+        var glyphs = font._getGlyphs(txt), xoff = 0;
 
-        // loop over each glyph and get its path(s)
+        // loop over each glyph and get its poly(s)
         for (var i = 0; i < glyphs.length; i++) {
 
-            drawGlyph(glyphs[i], xoff, y, fontSize);
+            var polys = getPolys(glyphs[i]);
+            for (var j = 0; j < polys.length; j++) {
+                push();
+                noStroke();
+                fill(200);
+                if (polys[j].contains(mouseX-xoff, mouseY))
+                    fill(255,0,0);
+                translate(xoff, 0);
+                polys[j].draw();
+                stroke(1);
+                noFill();
+                polys[j].drawPoints();
+                pop();
+            }
             xoff += glyphs[i].advanceWidth * font._scale(fontSize);
         }
     }
-
-    function drawGlyph(glyph, x, y, fontSize) {
-
-        var gpath = glyph.getPath(x, y, fontSize),
-            paths = splitPaths(gpath.toPathData());
-
-        //console.log('draw: '+glyph.name.toUpperCase()+', paths='+paths.length);
-
-        // draw each path as a poly or a hole
-
-        beginShape();
-        for (var j = 0; j < paths.length; j++) {
-
-            //console.log('  '+j+')'+paths[j]);
-            var points = pointsFromPath(paths[j], false);
-            //stroke(j*50,255-j*50,100);
-
-
-            noFill();
-            if (pointInPoly(points, mouseX, mouseY))
-                fill(200,0,0,64);
-
-            drawPoly(points, paths.length, j);
-            noFill();
-        }
-        endShape(CLOSE);
-    }
-
-    // NEXT: need to determine what is a hole and what isn't
-    // if not-a-hole, draw a new shape
-    // if a hole, continue the last-shape, and draw as a contour
-    function drawPoly(pts, num, k) // yuck, use drawContour/drawPoly instead?
-    {
-        //console.log('drawPoly: ',k);
-
-        var isContour = k % 2 == 1;
-        //
-        // if (num>4) {
-        //     if (k == 2)
-        //     isContour = true;
-        //     if (k>2) {
-        //
-        //         return;
-        //     }
-        // }
-
-        //console.log(k,isContour);
-        isContour && beginContour();
-
-        for (var i = 0; i < pts.length; i++)
-            vertex(pts[i].x, pts[i].y);
-
-        isContour && endContour();
-
-        //drawPoints(pts);
-    }
-
-    function drawPoints(pts)
-    {
-        for (var i = 0; i < pts.length; i++)
-            ellipse(pts[i].x, pts[i].y, 2, 2);
-    }
-
 </script>
 </head>
 <div id="drawing"></div>

@@ -29,13 +29,13 @@
         var bbox = pathBounds(points);
 
         noFill();
-        if (pointInBox(bbox, mouseX, mouseY))
+        if (pointInBox(mouseX, mouseY, bbox))
             fill(200,0,0,64);
 
         rect(bbox.x, bbox.y, bbox.w, bbox.h);
 
         fill(255);
-        if (pointInPoly(points, mouseX, mouseY))
+        if (pointInPoly(mouseX, mouseY, points))
             fill(200,0,0);
 
         drawSimpleGlyph(points);
