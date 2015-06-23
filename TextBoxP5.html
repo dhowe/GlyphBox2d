@@ -1,60 +1,54 @@
 <html>
-
 <head>
-    <title>GlyphBox2d-Test</title>
-    <script type="text/javascript" src="lib/path-utils.js"></script>
-    <script type="text/javascript" src="lib/p5.js"></script>
-    <script type="text/javascript">
+  <title>GlyphBox2d</title>
+  <script type="text/javascript" src="lib/path-utils.js"></script>
+  <script type="text/javascript" src="lib/p5.js"></script>
+  <script type="text/javascript">
 
-    var font, txt = "9", x = 100, y = 200, fontSize = 150;
+  var font, txt = "p5%js", x = 100, y = 200, fontSize = 150;
 
-    // NEXT: fix error with '9'
+  // NEXT: fix error with '9' !
 
-    function preload()
-    {
-        font = loadFont("fonts/SourceSansPro.otf");
-    }
+  function preload() {
+    font = loadFont("fonts/SourceSansPro.otf");
+  }
 
-    function setup()
-    {
-        createCanvas(600, 400);
-    }
+  function setup() {
+    createCanvas(600, 400);
+  }
 
-    function draw()
-    {
-        background(245);
+  function draw() {
+    background(245);
+    fill(200);
+    stroke(0);
+    drawGlyphs(txt, x, y, fontSize);
+  }
+
+  function drawGlyphs(txt, x, y, fontSize) {
+    var glyphs = font._getGlyphs(txt), xoff = 0;
+
+    // loop over each glyph and get its polys
+    for (var i = 0; i < glyphs.length; i++) {
+
+      var polys = getPolys(glyphs[i], true);
+
+      // then draw polygons and points
+      for (var j = 0; j < polys.length; j++) {
+        push();
+        noStroke();
         fill(200);
-        stroke(0);
-        drawGlyphs(txt, x, y, fontSize);
+        if (polys[j].contains(mouseX-xoff, mouseY))
+          fill(255,0,0);
+        translate(xoff, 0);
+        polys[j].draw();
+        stroke(1);
+        noFill();
+        polys[j].drawPoints();
+        pop();
+      }
+      xoff += glyphs[i].advanceWidth * font._scale(fontSize);
     }
-
-    function drawGlyphs(txt, x, y, fontSize) {
-
-        var glyphs = font._getGlyphs(txt), xoff = 0;
-
-        // loop over each glyph and get its poly(s)
-        for (var i = 0; i < glyphs.length; i++) {
-
-            var polys = getPolys(glyphs[i]);
-            for (var j = 0; j < polys.length; j++) {
-                push();
-                noStroke();
-                fill(200);
-                if (polys[j].contains(mouseX-xoff, mouseY))
-                    fill(255,0,0);
-                translate(xoff, 0);
-                polys[j].draw();
-                stroke(1);
-                noFill();
-                polys[j].drawPoints();
-                pop();
-            }
-            xoff += glyphs[i].advanceWidth * font._scale(fontSize);
-        }
-    }
+  }
 </script>
 </head>
-<div id="drawing"></div>
-
-
 </html>
