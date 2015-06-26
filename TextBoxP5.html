@@ -1,36 +1,46 @@
 <html>
 <head>
-  <title>GlyphBox2d</title>
+  <title>TextBoxP5</title>
   <script type="text/javascript" src="lib/path-utils.js"></script>
   <script type="text/javascript" src="lib/p5.js"></script>
   <script type="text/javascript">
 
-  var font, txt = "p5%js", x = 100, y = 200, fontSize = 150;
+  var font, txt = "%j9", x = 100, y = 200, fontSize = 150;
 
   // NEXT: fix error with '9' !
+  // do simple box2d with points
+  // Optimize simply via: http://phrogz.net/SVG/convert_path_to_polygon.xhtml
+  // memoize
 
   function preload() {
     font = loadFont("fonts/SourceSansPro.otf");
   }
 
   function setup() {
+
     createCanvas(600, 400);
   }
 
   function draw() {
+
     background(245);
     fill(200);
     stroke(0);
     drawGlyphs(txt, x, y, fontSize);
+    noLoop();
   }
 
   function drawGlyphs(txt, x, y, fontSize) {
+
     var glyphs = font._getGlyphs(txt), xoff = 0;
 
     // loop over each glyph and get its polys
     for (var i = 0; i < glyphs.length; i++) {
 
-      var polys = getPolys(glyphs[i], true);
+      var polys = getPolys(glyphs[i], {
+          sampleFactor: .2,
+          //removeCollinears: 0.1
+      });
 
       // then draw polygons and points
       for (var j = 0; j < polys.length; j++) {
@@ -46,6 +56,7 @@
         polys[j].drawPoints();
         pop();
       }
+
       xoff += glyphs[i].advanceWidth * font._scale(fontSize);
     }
   }
