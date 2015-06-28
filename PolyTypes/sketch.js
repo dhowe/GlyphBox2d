@@ -1,5 +1,5 @@
-var world, isStatic = 0, font, txt = "p", x = 50, y = 200,
-  fontSize = 150, bodies = [], paused = 1, surface;
+var world, isStatic = 0, font, txt = "J", x = 150, y = 100,
+  fontSize = 120, bodies = [], paused = 1, surface;
 
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
@@ -7,36 +7,36 @@ function preload() {
 
 function setup() {
 
-  createCanvas(780,360);
-  background(237,34,93);
-
-  noFill();
-  stroke(255);
-  textFont(font, fontSize);
-
-  // Initialize box2d physics and create the world
+  createCanvas(600,360);
   world = createWorld();
   surface = new Surface();
 
-  var pts = drawOriginal(0);
-  pts.reverse();
+  var pts = extractPoints(0);
 
-  drawReduced(pts, 100);
-
-  var subs = drawPolygonSubs(pts,200);
-  var pbody = createB2Poly(subs,300);
-
-  var cbody = createB2Chain(subs,400);
-
-  subs = drawPolygonTris(pts,500);
-  var tbody = createB2Poly(subs,600);
-
-  bodies.push(pbody,cbody,tbody);
-
-  for (var i = 0; i < bodies.length; i++)
-    drawB2Body(bodies[i]);
+  var subs = getPolygonSubs(pts);
+  bodies.push(createB2Poly(subs, 0));
+  bodies.push(createB2Chain(subs,100));
+  bodies.push(createB2Poly(subs, 200));
 }
 
+function draw() {
+
+  background(237,34,93);
+
+  // We must always step through time!
+  var timeStep = paused ? 0 : 1.0/30;
+  // 2nd and 3rd arguments are velocity and position iterations
+  world.Step(timeStep,10,10);
+
+  surface.display();
+
+  fill(255);
+  stroke(0);
+
+  for (var i = 0; i < bodies.length; i++) {
+    drawB2Body(bodies[i]);
+  }
+}
 
 function createB2Chain(subs,xoff) {
 
@@ -63,6 +63,7 @@ function createB2Chain(subs,xoff) {
 }
 
 function chainFixture(points) {
+  console.log('chainFixture: ',points);
   var fd = new box2d.b2FixtureDef();
   fd.density = 1.0;
   fd.friction = 0.1;
@@ -96,8 +97,11 @@ function drawPolygonSubs(pts,xoff) {
 function getPolygonSubs(pts) {
 
   var plys = doDecomp(pts);
+  console.log('DECOMP: '+plys.length+' polys');
+
   var ptsarrays = [];
   for (var i = 0; i < plys.length; i++) {
+    console.log('  '+plys[i].vertices.length + ' verts');
     ptsarrays.push(plys[i].vertices);
   }
   return ptsarrays;
@@ -209,6 +213,8 @@ function getPolygonTris(spts) {
   poly2tri.sweep.Triangulate(sweepContext);
   var tris = sweepContext.GetTriangles();
 
+  console.log('TRIS: '+tris.length+' polys');
+
   var ptsarrays = [];
   for (var i = 0; i < tris.length; i++) {
 
@@ -244,14 +250,15 @@ function drawReduced(pts, xoff) {
   noStroke();
   for (var k = 0; k < pts.length; k++) {
 
-    fill((255-(255/pts.length)*k));
-    ellipse(pts[k].x+xoff,pts[k].y,6,6);
+    fill((255/pts.length)*k);
+    ellipse(pts[k].x+xoff,pts[k].y,8,8);
   }
 }
 
-function drawOriginal(xoff) {
+function extractPoints(xoff) {
 
-  var glyphs = font._getGlyphs(txt);
+
+  var pts, glyphs = font._getGlyphs(txt);
 
   for (var i = 0; i < glyphs.length; i++) {
 
@@ -261,7 +268,7 @@ function drawOriginal(xoff) {
 
     // then draw polygons and pts
     for (var j = 0; j < polys.length; j++) {
-      var pts = polys[j].getPoints();
+      pts = polys[j].getPoints();
       beginShape();
       for (var k = 0; k < pts.length; k++) {
         vertex(pts[k].x+xoff,pts[k].y);
@@ -273,6 +280,8 @@ function drawOriginal(xoff) {
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
   }
+
+  simplifyPath(pts,.1);
 
   return pts;
 }
@@ -290,6 +299,8 @@ function simplifyPath(pts, angle) {
       num++;
     }
   }
+
+  pts.reverse();
 
   return num;
 }
