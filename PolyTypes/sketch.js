@@ -1,97 +1,85 @@
-var world, isStatic = 0, font, txt = "J", x = 150, y = 100,
-  fontSize = 120, bodies = [], paused = 1, surface;
+var world, isStatic = false, font, txt = "5", x = 50, y = 250,
+  fontSize = 220, bodies = [], paused = 1, surface, MAX=1;
 
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
 }
 
 function setup() {
-
+  //frameRate(1);
   createCanvas(600,360);
   world = createWorld();
   surface = new Surface();
 
   var pts = extractPoints(0);
 
-  var subs = getPolygonSubs(pts);
-  bodies.push(createB2Poly(subs, 0));
-  bodies.push(createB2Chain(subs,100));
-  bodies.push(createB2Poly(subs, 200));
+  //var subs = getPolygonSubs(pts);
+  //bodies.push(createB2Poly(subs, 0));
+  //bodies.push(createB2Chain(subs,100));
+
+  var tris = getPolygonTris(pts);
+
+  background(237,34,93);
+  stroke(255);
+
+  for (var i = 0; i < tris.length; i++) {
+    beginShape();
+    var tri = tris[i];
+    fill(random(0,255),random(0,255),random(0,255));
+    for (var j = 0; j < 3; j++)
+      vertex(tri[j].x,tri[j].y);
+    endShape(CLOSE);
+  }
+
+  b2PolyFromTris(tris, 300);
+  b2Tris(tris,100)
+  //for (var i = 0; i < bodies.length; i++)
+    //drawB2Body(bodies[i]);
+  console.log('paused: '+paused);
 }
 
 function draw() {
 
   background(237,34,93);
 
-  // We must always step through time!
   var timeStep = paused ? 0 : 1.0/30;
-  // 2nd and 3rd arguments are velocity and position iterations
   world.Step(timeStep,10,10);
 
   surface.display();
 
-  fill(255);
-  stroke(0);
-
-  for (var i = 0; i < bodies.length; i++) {
+  for (var i = 0; i < bodies.length; i++)
     drawB2Body(bodies[i]);
-  }
 }
 
-function createB2Chain(subs,xoff) {
 
-  var bd = new box2d.b2BodyDef();
-  bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
-    box2d.b2BodyType.b2_staticBody;
+function drawB2Body(body) {
 
-  bd.position = scaleToWorld(x+xoff, y);
+  var pos = scaleToPixels(body.GetPosition());
+  var wc = scaleToPixels(body.GetWorldCenter());
+  var a = body.GetAngleRadians();
 
-  // Create the body
-  var body = world.CreateBody(bd);
+  fill(127);
+  stroke(200);
 
-  if (Array.isArray(subs[0][0])) { // sub-polys
-    for (var i = 0; i < subs.length; i++) {;
-      var wpts = [], ppts = subs[i];
-      for (var j = 0; j < ppts.length; j++) {
-        wpts.push(new box2d.b2Vec2(scaleToWorld(ppts[j][0]-x),scaleToWorld(ppts[j][1]-y)));
-      }
-      fd = chainFixture(wpts);
-      body.CreateFixture(fd);
-    }
-  }
-  return body;
-}
+  push();
+  translate(pos.x, pos.y);
+  rotate(a);
 
-function chainFixture(points) {
-  console.log('chainFixture: ',points);
-  var fd = new box2d.b2FixtureDef();
-  fd.density = 1.0;
-  fd.friction = 0.1;
-  fd.restitution = 0.4;
-
-  fd.shape = new box2d.b2ChainShape()
-  fd.shape.CreateLoop(points, points.length);
-  //fd.shape.SetAsArray(points, points.length);
-  return fd;
-}
-
-function drawPolygonSubs(pts,xoff) {
-
-  var plys = getPolygonSubs(pts);
-
-  noFill();
-  stroke(255);
-  for (var i = 0; i < plys.length; i++) {
-    var apts = plys[i];
+  for (var k=0, f = body.GetFixtureList(); f; f = f.m_next) {
+    var ps = f.GetShape();
     beginShape();
-    for (var j = 0; j < apts.length; ++j) {
-      //console.log(apts[j][0]+xoff, apts[j][1]);
-      vertex(apts[j][0]+xoff, apts[j][1]);
+    for (var i = 0; i < ps.m_count; i++) {
+      var vert = ps.m_vertices[i];
+      vertex(scaleToPixels(vert.x), scaleToPixels(vert.y));
     }
-    endShape(CLOSE);
+    endShape();
+    //if (++k >= MAX) break;
   }
 
-  return plys;
+  pop();
+
+  fill(255,255,0);
+  ellipse(wc.x,wc.y,5,5);
 }
 
 function getPolygonSubs(pts) {
@@ -107,9 +95,84 @@ function getPolygonSubs(pts) {
   return ptsarrays;
 }
 
+function b2Tris(subs,xoff) {
+
+  var bd = new box2d.b2BodyDef(),
+    fd = new box2d.b2FixtureDef();
+
+  fd.density = 1.0;
+  fd.friction = 0.1;
+  fd.restitution = 0.4;
+
+  bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
+    box2d.b2BodyType.b2_staticBody;
+
+  bd.position = scaleToWorld(x+xoff, y);
+
+  for (var i = 0; i < subs.length; i++) {  // triangles
+
+    var body = world.CreateBody(bd);
+
+    var wpts = [], ppts = subs[i];
+    for (var j = 0; j < ppts.length; j++) {
+      var bv = new box2d.b2Vec2(scaleToWorld(ppts[j].x-x),scaleToWorld(ppts[j].y-y))
+      console.log(bv);
+      wpts.push(bv);
+    }
+    console.log('-----------------');
+    polyFixture(fd, wpts);
+    body.CreateFixture(fd);
+    bodies.push(body);
+  }
+}
+
+function b2PolyFromTris(subs,xoff) {
+
+  var body, bd = new box2d.b2BodyDef(),
+    fd = new box2d.b2FixtureDef();
+
+  fd.density = 1.0;
+  fd.friction = 0.1;
+  fd.restitution = 0.4;
+
+  bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
+    box2d.b2BodyType.b2_staticBody;
+
+  bd.position = scaleToWorld(x+xoff, y);
+
+  body = world.CreateBody(bd);
+
+  for (var i = 0; i < subs.length; i++) {  // triangles
+    var wpts = [], ppts = subs[i];
+    for (var j = 0; j < ppts.length; j++) {
+      var bv = new box2d.b2Vec2(scaleToWorld(ppts[j].x-x),scaleToWorld(ppts[j].y-y))
+      console.log(bv);
+      wpts.push(bv);
+    }
+    console.log('-----------------');
+    polyFixture(fd, wpts);
+    body.CreateFixture(fd);
+  }
+
+  bodies.push(body);
+
+  return body;
+}
+
+function polyFixture(fd, triPts) {
+
+  var pshape = new box2d.b2PolygonShape();
+  pshape.SetAsArray(triPts, triPts.length);
+  console.log('polyFixture: ',triPts.length);
+  fd.shape = pshape;
+  return fd;
+}
+
 function createB2Poly(subs,xoff) {
 
-  var bd = new box2d.b2BodyDef();
+  var bd = new box2d.b2BodyDef(),
+    fd = new box2d.b2FixtureDef();
+
   bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
     box2d.b2BodyType.b2_staticBody;
 
@@ -124,7 +187,7 @@ function createB2Poly(subs,xoff) {
       for (var j = 0; j < ppts.length; j++) {
         wpts.push(new box2d.b2Vec2(scaleToWorld(ppts[j][0]-x),scaleToWorld(ppts[j][1]-y)));
       }
-      fd = polyFixture(wpts);
+      polyFixture(fd, wpts);
       body.CreateFixture(fd);
     }
   }
@@ -135,7 +198,7 @@ function createB2Poly(subs,xoff) {
         wpts.push(new box2d.b2Vec2(scaleToWorld(ppts[j].x-x),scaleToWorld(ppts[j].y-y)));
         //console.log(ppts[j].x,ppts[j].y);
       }
-      fd = polyFixture(wpts);
+      polyFixture(fd, wpts);
       body.CreateFixture(fd);
     }
   }
@@ -161,52 +224,7 @@ function drawPolygonTris(pts,xoff) {
   return plys;
 }
 
-function drawB2Body(body) {
 
-  var pos = scaleToPixels(body.GetPosition());
-  var a = body.GetAngleRadians();
-  rectMode(CENTER);
-
-  push();
-  translate(pos.x, pos.y);
-  rotate(a);
-
-  fill(127);
-  stroke(200);
-  strokeWeight(2);
-
-  beginShape();
-
-  // Draw it!
-  var f = body.GetFixtureList();
-  while (f) {
-    var ps = f.GetShape();
-    //console.log(ps);
-    // For every vertex, convert to pixel vector
-    for (var i = 0; i < ps.m_count; i++) {
-      var v = (ps.m_vertices[i]);
-      //console.log(v.x,v.y);
-      vertex(scaleToPixels(v.x), scaleToPixels(v.y));
-    }
-    f = f.m_next;
-  }
-  endShape(CLOSE);
-  fill(0,0,255);
-  ellipse(0,0,5,5);
-  pop();
-}
-
-function polyFixture(points) {
-  //console.log('polyFixture: ',points);
-  var fd = new box2d.b2FixtureDef();
-  fd.density = 1.0;
-  fd.friction = 0.1;
-  fd.restitution = 0.4;
-
-  fd.shape = new box2d.b2PolygonShape()
-  fd.shape.SetAsArray(points, points.length);
-  return fd;
-}
 
 function getPolygonTris(spts) {
   var sweepContext = new poly2tri.SweepContext(spts);
@@ -219,7 +237,7 @@ function getPolygonTris(spts) {
   for (var i = 0; i < tris.length; i++) {
 
     var pts = [tris[i].GetPoint(0), tris[i].GetPoint(1), tris[i].GetPoint(2)];
-    //console.log('  '+pts.length + ' verts');
+    console.log('  '+pts.length + ' verts');
     ptsarrays.push(pts);
   }
 
@@ -255,10 +273,9 @@ function drawReduced(pts, xoff) {
   }
 }
 
-function extractPoints(xoff) {
+function extractPoints() { // TODO: handle multiple paths, eg 'j'
 
-
-  var pts, glyphs = font._getGlyphs(txt);
+  var pts, glyphs = font._getGlyphs(txt), xoff = 0;
 
   for (var i = 0; i < glyphs.length; i++) {
 
@@ -269,13 +286,6 @@ function extractPoints(xoff) {
     // then draw polygons and pts
     for (var j = 0; j < polys.length; j++) {
       pts = polys[j].getPoints();
-      beginShape();
-      for (var k = 0; k < pts.length; k++) {
-        vertex(pts[k].x+xoff,pts[k].y);
-        ellipse(pts[k].x+xoff,pts[k].y,2,2);
-      }
-        //particles.push(new Particle(pts[k].x+xoff,pts[k].y, 4, 1));
-      endShape(CLOSE);
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
@@ -284,6 +294,61 @@ function extractPoints(xoff) {
   simplifyPath(pts,.1);
 
   return pts;
+}
+function createB2Chain(subs,xoff) {
+
+  var bd = new box2d.b2BodyDef();
+  bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
+    box2d.b2BodyType.b2_staticBody;
+
+  bd.position = scaleToWorld(x+xoff, y);
+
+  // Create the body
+  var body = world.CreateBody(bd);
+
+  if (Array.isArray(subs[0][0])) { // sub-polys
+    for (var i = 0; i < subs.length; i++) {;
+      var wpts = [], ppts = subs[i];
+      for (var j = 0; j < ppts.length; j++) {
+        wpts.push(new box2d.b2Vec2(scaleToWorld(ppts[j][0]-x),scaleToWorld(ppts[j][1]-y)));
+      }
+      fd = chainFixture(wpts);
+      body.CreateFixture(fd);
+    }
+  }
+  return body;
+}
+
+function chainFixture(points) {
+  //console.log('chainFixture: ',points);
+  var fd = new box2d.b2FixtureDef();
+  fd.density = 1.0;
+  fd.friction = 0.1;
+  fd.restitution = 0.4;
+
+  fd.shape = new box2d.b2ChainShape()
+  fd.shape.CreateLoop(points, points.length);
+  //fd.shape.SetAsArray(points, points.length);
+  return fd;
+}
+
+function drawPolygonSubs(pts,xoff) {
+
+  var plys = getPolygonSubs(pts);
+
+  noFill();
+  stroke(255);
+  for (var i = 0; i < plys.length; i++) {
+    var apts = plys[i];
+    beginShape();
+    for (var j = 0; j < apts.length; ++j) {
+      //console.log(apts[j][0]+xoff, apts[j][1]);
+      vertex(apts[j][0]+xoff, apts[j][1]);
+    }
+    endShape(CLOSE);
+  }
+
+  return plys;
 }
 
 
@@ -300,7 +365,7 @@ function simplifyPath(pts, angle) {
     }
   }
 
-  pts.reverse();
+  //pts.reverse();
 
   return num;
 }
@@ -308,4 +373,5 @@ function simplifyPath(pts, angle) {
 function mouseReleased()
 {
   paused = !paused;
+  //MAX++;console.log(MAX);
 }
