@@ -1,11 +1,9 @@
-var world, isStatic = false, font, txt = "p5%js", x = 150, y = 200,
-  fontSize = 125, paused = 1, surface, MAX=1;
+var world, isStatic = false, font, txt = "p5%js",
+  x = 150, y = 200, fontSize = 150, paused = 1, surface;
 
 // TODO:
-// NEXT: add holes to letters
-// BUG: i or j with fontSize 120-123,140 **
-// BUG: # with fontSize 150 **
-
+// BUG: unstable below font-size 75
+//
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
 }
@@ -15,9 +13,7 @@ function setup() {
   createCanvas(600,360);
   world = createWorld();
   surface = new Surface();
-
   bodies = makeGlyphs();
-  console.log("body count: ", bodies.length);
   draw();
 }
 
@@ -35,8 +31,6 @@ function draw() {
 
   line(0,y,width,y);
   line(x,0,x,height);
-
-  drawd=1;
 }
 
 function makeGlyphs() { // TODO: handle holes
@@ -55,7 +49,7 @@ function makeGlyphs() { // TODO: handle holes
     body = undefined;
     for (var j = 0; j < polys.length; j++) {
 
-      polys[j].simplify(.1);
+      polys[j].simplify(.2);
       polys[j].triangulate();
 
       // TODO: should this take x+xoff or just xoff?
@@ -65,25 +59,20 @@ function makeGlyphs() { // TODO: handle holes
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
-    
+
     gbodies.push(body);
   }
 
   return gbodies;
 }
 
-var drawd;
 function drawB2Body(body,id) {
-
-  //if (id ==1) return;
 
   var pos = scaleToPixels(body.GetPosition());
   var wc = scaleToPixels(body.GetWorldCenter());
   var wcx = wc.x-pos.x, wcy = wc.y-pos.y;
   var a = body.GetAngleRadians();
   var bb = b2Bounds(body, true);
-
-  //if (!drawd) console.log(id, body.GetPosition(), pos, bb);
 
   fill(255);
   stroke(127);
@@ -121,5 +110,4 @@ function drawB2Body(body,id) {
 function mouseReleased()
 {
   paused = !paused;
-  //MAX++;console.log(MAX);
 }
