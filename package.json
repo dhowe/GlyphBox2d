@@ -1,0 +1,20 @@
+{
+  "name": "glyphbox",
+  "version": "1.0.1",
+  "main": "src/glyphbox.js",
+  "author": {
+    "name": "Daniel C. Howe"
+  },
+  "license": "GPL",
+  "dependencies": {
+    "earcut": "^2.0.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dhowe/glyphbox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dhowe/glyphbox/issues"
+  }
+}

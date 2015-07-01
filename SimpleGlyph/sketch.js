@@ -1,4 +1,4 @@
-var world, isStatic = false, font, txt = "p5#js", x = 150, y = 200,
+var world, isStatic = false, font, txt = "p5%js", x = 150, y = 200,
   fontSize = 125, paused = 1, surface, MAX=1;
 
 // TODO:
@@ -56,7 +56,7 @@ function makeGlyphs() { // TODO: handle holes
     for (var j = 0; j < polys.length; j++) {
 
       polys[j].simplify(.1);
-      polys[j].triangulate().length;
+      polys[j].triangulate();
 
       // TODO: should this take x+xoff or just xoff?
 
@@ -65,6 +65,7 @@ function makeGlyphs() { // TODO: handle holes
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
+    
     gbodies.push(body);
   }
 
@@ -84,8 +85,9 @@ function drawB2Body(body,id) {
 
   //if (!drawd) console.log(id, body.GetPosition(), pos, bb);
 
-  fill(127);
-  stroke(200);
+  fill(255);
+  stroke(127);
+  noStroke();
 
   push();
   translate(pos.x, pos.y);
@@ -98,7 +100,7 @@ function drawB2Body(body,id) {
       //console.log(scaleToPixels(ps.m_vertices[i].x),
         //scaleToPixels(ps.m_vertices[i].y));
       vertex(scaleToPixels(ps.m_vertices[i].x),
-        scaleToPixels(ps.m_vertices[i].y));
+        scaleToPixels(ps.m_vertices[i].y)); // draw triangle
     }
     endShape();
   }
