@@ -5,6 +5,7 @@ function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
 }
 
+// BROKEN
 function setup() {
 
   createCanvas(780,360);
@@ -19,11 +20,10 @@ function setup() {
   surface = new Surface();
 
   var pts = drawOriginal(0);
-  pts.reverse();
-
   drawReduced(pts, 100);
-
+  console.log(pts);
   var subs = drawPolygonSubs(pts,200);
+
   var pbody = createB2Poly(subs,300);
 
   var cbody = createB2Chain(subs,400);
@@ -63,6 +63,7 @@ function createB2Chain(subs,xoff) {
 }
 
 function chainFixture(points) {
+
   var fd = new box2d.b2FixtureDef();
   fd.density = 1.0;
   fd.friction = 0.1;
@@ -95,7 +96,9 @@ function drawPolygonSubs(pts,xoff) {
 
 function getPolygonSubs(pts) {
 
+  console.log(pts);
   var plys = doDecomp(pts);
+  console.log(plys);
   var ptsarrays = [];
   for (var i = 0; i < plys.length; i++) {
     ptsarrays.push(plys[i].vertices);
@@ -104,6 +107,8 @@ function getPolygonSubs(pts) {
 }
 
 function createB2Poly(subs,xoff) {
+
+  if (!subs || !subs.length) throw Error('No points!');
 
   var bd = new box2d.b2BodyDef();
   bd.type = !isStatic ? box2d.b2BodyType.b2_dynamicBody :
@@ -159,6 +164,8 @@ function drawPolygonTris(pts,xoff) {
 
 function drawB2Body(body) {
 
+  if (!body) return;
+
   var pos = scaleToPixels(body.GetPosition());
   var a = body.GetAngleRadians();
   rectMode(CENTER);
@@ -205,6 +212,7 @@ function polyFixture(points) {
 }
 
 function getPolygonTris(spts) {
+
   var sweepContext = new poly2tri.SweepContext(spts);
   poly2tri.sweep.Triangulate(sweepContext);
   var tris = sweepContext.GetTriangles();
@@ -225,15 +233,14 @@ function getPolygonTris(spts) {
 function doDecomp(pts) {
 
   var concave = new decomp.Polygon();
-  for (var k = 0; k < pts.length; k++) {
+  for (var k = 0; k < pts.length; k++)
     concave.vertices.push([pts[k].x,pts[k].y]);
-  }
   return concave.quickDecomp();
 }
 
 function drawReduced(pts, xoff) {
 
-  simplifyPath(pts,.1);
+  simplify(pts,.1);
 
   beginShape();
   for (var k = 0; k < pts.length; k++) {
@@ -255,7 +262,7 @@ function drawOriginal(xoff) {
 
   for (var i = 0; i < glyphs.length; i++) {
 
-    var polys = getPolys(glyphs[i], {
+    var polys = getPolys(glyphs[i], x, y, fontSize, {
         sampleFactor: .125,
     });
 
@@ -275,23 +282,6 @@ function drawOriginal(xoff) {
   }
 
   return pts;
-}
-
-
-function simplifyPath(pts, angle) {
-
-  var num = 0;
-  for (var i = pts.length - 1; pts.length > 3 && i >= 0; --i) {
-
-    if (collinear(at(pts, i - 1), at(pts, i), at(pts, i + 1), angle)) {
-
-      // Remove the middle point
-      pts.splice(i % pts.length, 1);
-      num++;
-    }
-  }
-
-  return num;
 }
 
 function mouseReleased()

@@ -1,5 +1,4 @@
-var world, isStatic = false, font, txt = "5", x = 50, y = 250,
-  fontSize = 220, bodies = [], paused = 1, surface, MAX=1;
+var world, isStatic = false, font, txt = "p%5", x = 100, y = 125, fontSize = 150;
 
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
@@ -7,38 +6,79 @@ function preload() {
 
 function setup() {
   //frameRate(1);
-  createCanvas(600,360);
+  createCanvas(500,500);
   world = createWorld();
   surface = new Surface();
 
-  var pts = extractPoints(0);
-
+  //var pts = extractPoints();
+//console.log(pts);
+//return;
   //var subs = getPolygonSubs(pts);
   //bodies.push(createB2Poly(subs, 0));
   //bodies.push(createB2Chain(subs,100));
 
-  var tris = getPolygonTris(pts);
 
-  background(237,34,93);
-  stroke(255);
+  background(100);
+  noStroke();
 
-  for (var i = 0; i < tris.length; i++) {
-    beginShape();
-    var tri = tris[i];
-    fill(random(0,255),random(0,255),random(0,255));
-    for (var j = 0; j < 3; j++)
-      vertex(tri[j].x,tri[j].y);
-    endShape(CLOSE);
+  var noHoles = false;
+  var libs = [ 'triangulatePoly2Tri', 'triangulateEarcut', 'triangulatePnltri' ];
+  for (var h = 0; h < libs.length; h++) {
+
+    var tris = getPolygonTris(libs[h], noHoles), yoff = h * 150, total = 0;
+    for (var k = 0; k < tris.length; k++) {
+      var ptlist = tris[k];//k * fontSize*.7;
+      push();
+      translate(0,yoff);
+      for (var i = 0; i < ptlist.length; i++) {
+        fill(random(0,255),random(0,255),random(0,255));
+        beginShape();
+        for (var j = 0; j < 3; j++) {
+          vertex(ptlist[i][j].x, ptlist[i][j].y);
+          //console.log(ptlist[j].x, ptlist[j].y);
+        }
+        endShape(CLOSE);
+      }
+      pop();
+    }
+
+    stroke(255);
+    line(0, y+yoff,width, y+yoff);
+    fill(255);
+    noStroke();
+    text(libs[h].replace('triangulate',''), x-50, y+yoff);
+
   }
 
-  b2PolyFromTris(tris, 300);
-  b2Tris(tris,100)
+  //b2PolyFromTris(tris, 300);
+  //b2Tris(tris,100)
   //for (var i = 0; i < bodies.length; i++)
     //drawB2Body(bodies[i]);
-  console.log('paused: '+paused);
 }
 
-function draw() {
+function getPolygonTris(trilib, noHoles) { // returns set of 2d[] of tris
+
+  var result = [], glyphs = font._getGlyphs(txt), xoff = 0;
+
+  for (var i = 0; i < glyphs.length; i++) {
+
+    var polys = getPolys(glyphs[i], x + xoff, y, fontSize);
+
+    // then get polygons and pts
+    for (var j = 0; j < polys.length; j++) {
+
+      polys[j].simplify();
+      polys[j][trilib](noHoles);
+      result.push(polys[j].triangles);
+    }
+
+    xoff += glyphs[i].advanceWidth * font._scale(fontSize);
+  }
+
+  return result;
+}
+
+function drawX() {
 
   background(237,34,93);
 
@@ -85,11 +125,11 @@ function drawB2Body(body) {
 function getPolygonSubs(pts) {
 
   var plys = doDecomp(pts);
-  console.log('DECOMP: '+plys.length+' polys');
+  //console.log('DECOMP: '+plys.length+' polys');
 
   var ptsarrays = [];
   for (var i = 0; i < plys.length; i++) {
-    console.log('  '+plys[i].vertices.length + ' verts');
+    //console.log('  '+plys[i].vertices.length + ' verts');
     ptsarrays.push(plys[i].vertices);
   }
   return ptsarrays;
@@ -119,7 +159,6 @@ function b2Tris(subs,xoff) {
       console.log(bv);
       wpts.push(bv);
     }
-    console.log('-----------------');
     polyFixture(fd, wpts);
     body.CreateFixture(fd);
     bodies.push(body);
@@ -226,24 +265,6 @@ function drawPolygonTris(pts,xoff) {
 
 
 
-function getPolygonTris(spts) {
-  var sweepContext = new poly2tri.SweepContext(spts);
-  poly2tri.sweep.Triangulate(sweepContext);
-  var tris = sweepContext.GetTriangles();
-
-  console.log('TRIS: '+tris.length+' polys');
-
-  var ptsarrays = [];
-  for (var i = 0; i < tris.length; i++) {
-
-    var pts = [tris[i].GetPoint(0), tris[i].GetPoint(1), tris[i].GetPoint(2)];
-    console.log('  '+pts.length + ' verts');
-    ptsarrays.push(pts);
-  }
-
-  //console.log(ptsarrays);
-  return ptsarrays;
-}
 
 
 function doDecomp(pts) {
@@ -257,7 +278,7 @@ function doDecomp(pts) {
 
 function drawReduced(pts, xoff) {
 
-  simplifyPath(pts,.1);
+  simplify(pts,.1);
 
   beginShape();
   for (var k = 0; k < pts.length; k++) {
@@ -273,28 +294,6 @@ function drawReduced(pts, xoff) {
   }
 }
 
-function extractPoints() { // TODO: handle multiple paths, eg 'j'
-
-  var pts, glyphs = font._getGlyphs(txt), xoff = 0;
-
-  for (var i = 0; i < glyphs.length; i++) {
-
-    var polys = getPolys(glyphs[i], {
-        sampleFactor: .125,
-    });
-
-    // then draw polygons and pts
-    for (var j = 0; j < polys.length; j++) {
-      pts = polys[j].getPoints();
-    }
-
-    xoff += glyphs[i].advanceWidth * font._scale(fontSize);
-  }
-
-  simplifyPath(pts,.1);
-
-  return pts;
-}
 function createB2Chain(subs,xoff) {
 
   var bd = new box2d.b2BodyDef();
@@ -351,24 +350,6 @@ function drawPolygonSubs(pts,xoff) {
   return plys;
 }
 
-
-function simplifyPath(pts, angle) {
-
-  var num = 0;
-  for (var i = pts.length - 1; pts.length > 3 && i >= 0; --i) {
-
-    if (collinear(at(pts, i - 1), at(pts, i), at(pts, i + 1), angle)) {
-
-      // Remove the middle point
-      pts.splice(i % pts.length, 1);
-      num++;
-    }
-  }
-
-  //pts.reverse();
-
-  return num;
-}
 
 function mouseReleased()
 {

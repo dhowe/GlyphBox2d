@@ -26,7 +26,7 @@ function setup() {
 
 function createGlyphs() {
 
-  /for (var i = shapes.length-1; i >= 0; i--) {
+  /*for (var i = shapes.length-1; i >= 0; i--) {
     shapes[i].kill();
     shapes.splice(i, 1);
   }*/

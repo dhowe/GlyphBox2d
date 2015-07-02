@@ -30,21 +30,28 @@ function setup() {
 function createParticles() {
 
   for (var i = particles.length-1; i >= 0; i--) {
+
     particles[i].kill();
     particles.splice(i, 1);
   }
+
   var glyphs = font._getGlyphs(txt), xoff = 0;
+
   for (var i = 0; i < glyphs.length; i++) {
 
-    var polys = getPolys(glyphs[i], {
-        sampleFactor: .125,
+    var polys = getPolys(glyphs[i], x, y, fontSize, {
+
+      sampleFactor: .1, // sample every 10th of path length
+      simplifyThreshold: 0 // don't simplify straight lines
     });
 
-    // then draw polygons and points
+    //  draw polygons and points
     for (var j = 0; j < polys.length; j++) {
+
       var points = polys[j].getPoints();
+
       for (var k = 0; k < points.length; k++)
-        particles.push(new Particle(points[k].x+xoff,points[k].y, 4, 1));
+        particles.push(new Particle(points[k].x + xoff, points[k].y, 3, 1));
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
@@ -67,12 +74,13 @@ function draw() {
 
   // Display all the particles
   for (var i = particles.length-1; i >= 0; i--) {
+
     particles[i].display();
+
     if (particles[i].done()) {
       particles.splice(i, 1);
     }
   }
-
 }
 
 function mouseReleased()

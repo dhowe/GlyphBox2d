@@ -1,9 +1,6 @@
 var world, isStatic = false, font, txt = "p5%js",
   x = 150, y = 200, fontSize = 150, paused = 1, surface;
 
-// TODO:
-// BUG: unstable below font-size 75
-//
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
 }
