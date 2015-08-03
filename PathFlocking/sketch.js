@@ -2,7 +2,6 @@ var flock, font, pauseFlock = true, findTarget = false; txt = "p5", x = 230, y =
 
 function preload() {
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
-  noStroke();
 }
 
 function setup() {
@@ -10,8 +9,7 @@ function setup() {
   createCanvas(640, 360);
   flock = new Flock();
 
-  var glyphs = font._getGlyphs(txt),
-    xoff = 0;
+  var xoff = 0, glyphs = font._getGlyphs(txt);
 
   for (var i = 0; i < glyphs.length; i++) {
 
@@ -31,8 +29,6 @@ function setup() {
         var start = createVector(points[k].x + xoff, points[k].y);
         flock.addBoid(new Boid(start, start));
       }
-
-        //particles.push(new Particle(points[k].x + xoff, points[k].y, 3, 1));
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
@@ -40,11 +36,11 @@ function setup() {
 }
 
 function draw() {
+
   background(237,34,93);
   textFont(font, fontSize);
-  //fill(255,64);
-  //text(txt, x,y);
   fill(255);
+  noStroke();
   flock.run();
 }
 
