@@ -1,4 +1,4 @@
-// from Shiffman's The Nature of Code
+// adapted from Shiffman's The Nature of Code
 // http://natureofcode.com
 
 function Boid(target) {
@@ -6,6 +6,7 @@ function Boid(target) {
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
   this.position = createVector(width/2,height/2);
+
   this.r = 3.0;
   this.maxspeed = 3;    // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
@@ -16,7 +17,9 @@ function Boid(target) {
   this.hidden = true;
 
   this.place = function(x,y) {
-    this.position = createVector(x, y);
+
+    this.position = createVector(mouseX, mouseY);
+    this.velocity = p5.Vector.sub(createVector(mouseX, mouseY),createVector(pmouseX, pmouseY));
     this.hidden = false;
   }
 
@@ -61,8 +64,6 @@ function Boid(target) {
     if (flock.assemble && !this.arrived && this.target.dist(this.position) < 1) {
       this.arrived = true;
       this.velocity = p5.Vector.fromAngle(this.theta + radians(90));
-      //console.log('arrive');
-      //this.target = null;
     }
     else {
       this.velocity.add(this.acceleration);
@@ -72,10 +73,8 @@ function Boid(target) {
     }
   }
 
-  // A method that calculates and applies a steering force towards a target
-  // STEER = DESIRED MINUS VELOCITY
   this.seek = function(target) {
-    var desired = p5.Vector.sub(target,this.position);  // A vector pointing from the location to the target
+    var desired = p5.Vector.sub(target,this.position);
     // Normalize desired and scale to maximum speed
     desired.normalize();
     desired.mult(this.maxspeed);
@@ -86,8 +85,12 @@ function Boid(target) {
   }
 
   this.render = function() {
+
+
     // Draw a triangle rotated in the direction of velocity
     var theta = this.velocity.heading() + radians(90);
+    fill(255);
+    noStroke();
     push();
     translate(this.position.x,this.position.y);
     rotate(theta);
@@ -172,17 +175,16 @@ function Boid(target) {
   this.cohesion = function(boids) {
     var neighbordist = 50;
     var sum = createVector(0,0);   // Start with empty vector to accumulate all locations
-    var count = 0;
+    var num = 0;
     for (var i = 0; i < boids.length; i++) {
       var d = p5.Vector.dist(this.position,boids[i].position);
       if ((d > 0) && (d < neighbordist)) {
         sum.add(boids[i].position); // Add location
-        count++;
+        num++;
       }
     }
-    if (count > 0) {
-      sum.div(count);
-      return this.seek(sum);  // Steer towards the location
+    if (num > 0) {
+      return this.seek(sum.div(num));  // Steer towards the location
     } else {
       return createVector(0,0);
     }
@@ -194,12 +196,7 @@ function Boid(target) {
     var desired = p5.Vector.sub(target, this.position), d = desired.mag();
 
     // Scale with arbitrary damping within 100 pixels
-    if (d < 100) {
-      var m = map(d,0,100,0,this.maxspeed);
-      desired.setMag(m);
-    } else {
-      desired.setMag(this.maxspeed);
-    }
+    desired.setMag(d < 100 ? map(d,0,100,0,this.maxspeed) : this.maxspeed);
 
     // Steering = Desired minus Velocity
     var steer = p5.Vector.sub(desired, this.velocity);
@@ -208,28 +205,37 @@ function Boid(target) {
   }
 }
 
-function mouseOnscreen() {
+function mouseOnScreen() {
 
   return mouseX && mouseX <= width && mouseY && mouseY <= height;
 }
 
 function Flock() {
 
+  this.count = 0;
   this.boids = [];
   this.assemble = false;
 
   this.arrived = function() {
-    for (var i = 0; i < this.boids.length; i++)
-      if (!this.boids[i].arrived) return false;
-    return true;
+
+    if (arguments.length) {
+      for (var i = 0; i < this.boids.length; i++)
+        this.boids[i].arrived = arguments[0];
+      if (!arguments[0]) this.count = 0;
+    }
+    else {
+      for (var i = 0; i < this.boids.length; i++)
+        if (!this.boids[i].arrived) return false;
+      return true;
+    }
   }
 
   this.run = function() {
 
-    this.assemble = (count == flock.boids.length);
+    this.assemble = (this.count == flock.boids.length);
 
-    if (!this.assemble && mouseOnscreen())
-      this.boids[count++].place(mouseX, mouseY);
+    if (!this.assemble && mouseOnScreen())
+      this.boids[this.count++].place(mouseX, mouseY);
 
     for (var i = 0; i < this.boids.length; i++)
       this.boids[i].run(this.boids);
