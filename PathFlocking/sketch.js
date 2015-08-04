@@ -1,6 +1,8 @@
-var flock, font, pauseFlock = true, findTarget = false; txt = "p5", x = 230, y = 200, fontSize = 150;
+var flock, font, pauseFlock = false, findTarget = false;
+var txt = "p5.js", x = 150, y = 220, fontSize = 150, count = 0;
 
 function preload() {
+
   font = loadFont("../fonts/AvenirNextLTPro-Demi.otf");
 }
 
@@ -15,8 +17,7 @@ function setup() {
 
     var polys = getPolys(glyphs[i], x, y, fontSize, {
 
-      sampleFactor: .25, // sample every 10th of path length
-      simplifyThreshold: 0 // don't simplify straight lines
+      sampleFactor: .10, // sample every 10th of path length
     });
 
     //  draw polygons and points
@@ -27,34 +28,33 @@ function setup() {
       var target = createVector(width/2,height/2);
       for (var k = 0; k < points.length; k++) {
         var start = createVector(points[k].x + xoff, points[k].y);
-        flock.addBoid(new Boid(start, start));
+        flock.addBoid(new Boid(start, start, points[k].alpha));
       }
     }
 
     xoff += glyphs[i].advanceWidth * font._scale(fontSize);
   }
+  //console.log("FLOCK: "+flock.size());
 }
 
 function draw() {
 
   background(237,34,93);
-  textFont(font, fontSize);
   fill(255);
   noStroke();
   flock.run();
 }
 
-function mouseReleased() {
-  //for (var i = 0; i < 100; i++)
-    //flock.addBoid(new Boid(width / 2, height / 2));
-  if (pauseFlock)
-    pauseFlock = false;
-  else
-    findTarget = true;
-}
+function mouseMoved() {
 
-function mouseDragged() {
-  //flock.addBoid(new Boid(mouseX,mouseY));
+  if (flock && count < flock.boids.length) {
+    flock.boids[count].position = createVector(mouseX, mouseY);
+    flock.boids[count].hidden = false;
+    count++;
+  }
+  else {
+    findTarget = true;
+  }
 }
 
 
@@ -62,39 +62,30 @@ function mouseDragged() {
 // From Shiffman's The Nature of Code: http://natureofcode.com
 // --------------------------------------------------------------
 
-function Flock() {
-  // An array for all the boids
-  this.boids = []; // Initialize the array
-}
+function Boid(pos, target, alpha) {
 
-Flock.prototype.run = function() {
-  for (var i = 0; i < this.boids.length; i++) {
-    this.boids[i].run(this.boids);
-  }
-}
-
-Flock.prototype.addBoid = function(b) {
-  this.boids.push(b);
-}
-
-// From: The Nature of Code - Daniel Shiffman: http://natureofcode.com
-
-function Boid(pos, target) {
+  // derive velocity from rotation
+  this.velocity = p5.Vector.fromAngle(radians(alpha));
+  //this.velocity.mult(5);
+  //this.velocity = createVector(cos(theta), sin(theta));
   this.acceleration = createVector(0, 0);
-  this.velocity = createVector(random(-1, 1), random(-1, 1));
-  this.position = createVector(pos.x, pos.y);
-  this.r = 3;
+  this.position = createVector(random(width),random(height));
+    //createVector(pos.x, pos.y);
+
+  this.r = 3;      // Dimensions
   this.maxspeed = 3; // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
+
+  target.theta = this.velocity.heading() + radians(90);
   this.target = target;
+  this.arrived = false;
+  this.hidden = true;
 }
 
 Boid.prototype.run = function(boids) {
   if (!pauseFlock) {
     if (findTarget) {
       this.arrive(this.target);
-      //var coh = this.seek(this.target);
-      //this.applyForce(coh.mult(this.position.dist(this.target)));
     }
     else {
       this.flock(boids);
@@ -106,21 +97,26 @@ Boid.prototype.run = function(boids) {
 }
 
 // TODO: need to specify an arrival rotation
+// A method that calculates a steering force towards a target
+// STEER = DESIRED MINUS VELOCITY
 Boid.prototype.arrive = function(target) {
 
-    var arrivalThreshold = this.maxspeed * 25;
-    var desiredVelocity = createVector(target.x, target.y);
-    desiredVelocity.sub(this.position);
-    desiredVelocity.normalize();
+  // A vector pointing from the location to the target
+  var desired = p5.Vector.sub(target,this.position), d = desired.mag();
 
-    var dist = this.position.dist(target);
-    if (dist > arrivalThreshold)
-      desiredVelocity.mult(this.maxspeed);
-    else
-      desiredVelocity.mult( this.maxspeed * (dist / arrivalThreshold) );
+  // Scale with arbitrary damping within 100 pixels
+  if (d < 100) {
+    var m = map(d,0,100,0,this.maxspeed);
+    desired.setMag(m);
+  } else {
+    desired.setMag(this.maxspeed);
+  }
 
-    this.applyForce(desiredVelocity.sub(this.velocity));
-};
+  // Steering = Desired minus Velocity
+  var steer = p5.Vector.sub(desired, this.velocity);
+  steer.limit(this.maxforce);  // Limit to maximum steering force
+  this.applyForce(steer);
+}
 
 Boid.prototype.applyForce = function(force) {
   // We could add mass here if we want A = F / M
@@ -129,13 +125,16 @@ Boid.prototype.applyForce = function(force) {
 
 // We accumulate a new acceleration each time based on three rules
 Boid.prototype.flock = function(boids) {
+
   var sep = this.separate(boids); // Separation
   var ali = this.align(boids); // Alignment
   var coh = this.cohesion(boids); // Cohesion
+
   // Arbitrarily weight these forces
   sep.mult(1.5);
   ali.mult(1.0);
   coh.mult(1.0);
+
   // Add the force vectors to acceleration
   this.applyForce(sep);
   this.applyForce(ali);
@@ -144,19 +143,27 @@ Boid.prototype.flock = function(boids) {
 
 // Method to update location
 Boid.prototype.update = function() {
-  // Update velocity
-  this.velocity.add(this.acceleration);
-  // Limit speed
-  this.velocity.limit(this.maxspeed);
-  this.position.add(this.velocity);
-  // Reset accelertion to 0 each cycle
-  this.acceleration.mult(0);
+
+  if (findTarget && !this.arrived && this.target.dist(this.position)<1) {
+    // do nothing
+    this.arrived = true;
+    this.velocity = p5.Vector.fromAngle(this.target.theta+radians(90));
+    //this.target = null;
+  }
+  else {
+    // Update velocity
+    this.velocity.add(this.acceleration);
+    // Limit speed
+    this.velocity.limit(this.maxspeed);
+    this.position.add(this.velocity);
+    // Reset accelertion to 0 each cycle
+    this.acceleration.mult(0);
+  }
 }
 
-// A method that calculates and applies a steering force towards a target
-// STEER = DESIRED MINUS VELOCITY
 Boid.prototype.seek = function(target) {
-  var desired = p5.Vector.sub(target, this.position); // A vector pointing from the location to the target
+  // A vector pointing from the location to the target
+  var desired = p5.Vector.sub(target, this.position);
   // Normalize desired and scale to maximum speed
   desired.normalize();
   desired.mult(this.maxspeed);
@@ -168,18 +175,17 @@ Boid.prototype.seek = function(target) {
 
 Boid.prototype.render = function() {
   // Draw a triangle rotated in the direction of velocity
-  var theta = this.velocity.heading() + radians(90);
-  //fill(127);
-  //stroke(200);
-  push();
-  translate(this.position.x, this.position.y);
-  rotate(theta);
-  beginShape();
-  vertex(0, -this.r*2); // nose
-  vertex(-this.r, this.r*2);
-  vertex(this.r, this.r*2);
-  endShape(CLOSE);
-  pop();
+  if (!this.hidden) {
+    push();
+    translate(this.position.x, this.position.y);
+    rotate(this.velocity.heading() + radians(90));
+    beginShape();
+    vertex(0, -this.r*2); // nose
+    vertex(-this.r, this.r*2);
+    vertex(this.r, this.r*2);
+    endShape(CLOSE);
+    pop();
+  }
 }
 
 // Wraparound
@@ -269,4 +275,20 @@ Boid.prototype.cohesion = function(boids) {
   } else {
     return createVector(0, 0);
   }
+}
+
+
+function Flock() {
+  // An array for all the boids
+  this.boids = []; // Initialize the array
+}
+
+Flock.prototype.run = function() {
+  for (var i = 0; i < this.boids.length; i++) {
+    this.boids[i].run(this.boids);
+  }
+}
+
+Flock.prototype.addBoid = function(b) {
+  this.boids.push(b);
 }
