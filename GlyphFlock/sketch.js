@@ -1,6 +1,5 @@
-// The Nature of Code
-// Daniel Shiffman
-// http://natureofcode.com
+// Adapted from Dan Shiffman's 'The Nature
+// of Code': http://natureofcode.com
 
 var flock;
 
@@ -9,7 +8,8 @@ function setup() {
   createCanvas(500,300);
   flock = new Flock();
   loadFont("avenir.otf", function(f) {
-      var points = pointsFromText(f, 80, 185, 'p5.js', 150);
+
+      var points = textToPoints(f, 'p5.js', 80, 185, 150);
       for (var k = 0; k < points.length; k++) {
         flock.boids.push(new Boid(points[k]));
       }

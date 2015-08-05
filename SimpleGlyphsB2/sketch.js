@@ -39,7 +39,7 @@ function makeGlyphs() { // TODO: handle holes
   for (var i = 0; i < glyphs.length; i++) {
 
     // TODO: should this take x,y or no? prob no
-    var polys = getPolys(glyphs[i], 0, 0, fontSize, {
+    var polys = glyphToPolys(glyphs[i], 0, 0, fontSize, {
         sampleFactor: .125,
     });
 

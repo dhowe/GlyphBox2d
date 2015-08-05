@@ -39,7 +39,7 @@ function createParticles() {
 
   for (var i = 0; i < glyphs.length; i++) {
 
-    var polys = getPolys(glyphs[i], x, y, fontSize, {
+    var polys = glyphToPolys(glyphs[i], x, y, fontSize, {
 
       sampleFactor: .1, // sample every 10th of path length
       simplifyThreshold: 0 // don't simplify straight lines

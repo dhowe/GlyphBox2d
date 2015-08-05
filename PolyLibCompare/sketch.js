@@ -53,7 +53,7 @@ function getPolygonTris(trilib, txt, noHoles) { // returns set of 2d[] of tris
 
   for (var i = 0; i < glyphs.length; i++) {
 
-    var polys = getPolys(glyphs[i], x + xoff, y, fontSize);
+    var polys = glyphToPolys(glyphs[i], x + xoff, y, fontSize);
 
     console.log(glyphs[i].name+': '+polys.length+' poly(s)');
     letter = glyphs[i].name;
